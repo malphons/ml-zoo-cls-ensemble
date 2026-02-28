@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradient Boosting Classifier &mdash; ML Zoo</title>
+    <meta name="description" content="Interactive Gradient Boosting Classifier with progressive boundary refinement.">
+    <style>:root{--bg-primary:#0d1117;--bg-secondary:#161b22;--bg-card:#1c2128;--bg-card-hover:#272d36;--bg-input:#21262d;--text-primary:#e6edf3;--text-secondary:#8b949e;--text-muted:#6e7681;--text-link:#58a6ff;--border-default:#30363d;--border-muted:#21262d;--radius-sm:6px;--radius-md:10px;--transition:.2s ease}:root[data-theme="light"]{--bg-primary:#ffffff;--bg-secondary:#f6f8fa;--bg-card:#ffffff;--bg-card-hover:#f3f4f6;--bg-input:#f6f8fa;--text-primary:#1f2328;--text-secondary:#656d76;--text-muted:#8b949e;--text-link:#0969da;--border-default:#d0d7de;--border-muted:#d8dee4}*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:var(--text-primary);background:var(--bg-primary);-webkit-font-smoothing:antialiased;line-height:1.6}</style>
+    <link rel="stylesheet" href="../../css/model.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div class="model-page">
+        <nav class="model-nav"><a href="../../../../" class="model-nav__back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back to ML Zoo</a></nav>
+        <section class="model-hero">
+            <h1 class="model-hero__title">Gradient Boosting Classifier</h1>
+            <div class="model-hero__meta">
+                <span class="model-hero__badge" style="background:#3fb950;color:#fff">Classification</span>
+                <span class="model-hero__badge" style="background:rgba(126,231,135,.15);color:#7ee787">Ensemble</span>
+                <span class="model-hero__year">Est. 2001</span>
+            </div>
+            <p class="model-hero__desc">Sequentially builds trees that correct errors of previous trees by fitting to negative gradients of the deviance loss. Each round progressively refines the decision boundary.</p>
+        </section>
+        <div class="model-diagram">
+            <div class="model-diagram__controls">
+                <button class="model-diagram__btn" id="btn-regions">Show Regions</button>
+                <button class="model-diagram__btn" onclick="MLZoo.diagram.resetZoom()">Reset View</button>
+            </div>
+            <div id="diagram-container"></div>
+        </div>
+        <div class="model-slider"><span class="model-slider__label">Boosting round:</span><input type="range" class="model-slider__input" min="1" max="5" step="1" value="5" id="round-input"><span class="model-slider__value" id="round-value">5</span></div>
+        <div class="model-tabs">
+            <button class="model-tab-btn model-tab-btn--active" data-tab="overview">Overview</button>
+            <button class="model-tab-btn" data-tab="howto">How It Works</button>
+            <button class="model-tab-btn" data-tab="math">Math</button>
+            <button class="model-tab-btn" data-tab="code">Code</button>
+            <button class="model-tab-btn" data-tab="references">References</button>
+        </div>
+        <div class="model-tab-content model-tab-content--active" id="tab-overview">
+            <div class="model-section">
+                <h2>Overview</h2>
+                <p>Gradient Boosting for classification works by fitting a sequence of shallow decision trees to the negative gradient of the log-loss (deviance). At each iteration, a new tree is added that corrects the errors of the current ensemble, gradually improving the decision boundary. With proper regularization (learning rate, max depth, subsampling), it achieves state-of-the-art performance on structured/tabular data.</p>
+                <h3>When to Use</h3>
+                <ul><li>Tabular/structured data classification</li><li>You need high accuracy and can afford slower training</li><li>Feature interactions are important</li><li>You have enough data to avoid overfitting</li></ul>
+                <div class="model-proscons">
+                    <div class="model-pros"><h4>Pros</h4><ul><li>Among the most accurate classifiers for tabular data</li><li>Handles mixed feature types</li><li>Built-in feature importance</li><li>Flexible loss functions</li></ul></div>
+                    <div class="model-cons"><h4>Cons</h4><ul><li>Sequential training (slow)</li><li>Many hyperparameters to tune</li><li>Can overfit without regularization</li><li>Less interpretable than single trees</li></ul></div>
+                </div>
+            </div>
+        </div>
+        <div class="model-tab-content" id="tab-howto">
+            <div class="model-section">
+                <h2>How It Works</h2>
+                <ol style="color:var(--text-secondary);padding-left:20px;margin-bottom:16px">
+                    <li style="margin-bottom:8px"><strong>Initialize</strong> with log-odds: $F_0(x) = \log(\hat{p}/(1-\hat{p}))$ using base class proportions.</li>
+                    <li style="margin-bottom:8px"><strong>Compute pseudo-residuals:</strong> $r_i = y_i - p_i$ where $p_i = \sigma(F(x_i))$. These are the negative gradients of the deviance loss.</li>
+                    <li style="margin-bottom:8px"><strong>Fit a small tree</strong> to the pseudo-residuals.</li>
+                    <li style="margin-bottom:8px"><strong>Update:</strong> $F_{t+1}(x) = F_t(x) + \eta \cdot h_t(x)$ where $\eta$ is the learning rate.</li>
+                    <li style="margin-bottom:8px"><strong>Repeat</strong> for $T$ rounds. Final probabilities via sigmoid: $p(x) = \sigma(F_T(x))$.</li>
+                </ol>
+                <p>Move the <strong>boosting round</strong> slider to see how the boundary improves with each round.</p>
+            </div>
+        </div>
+        <div class="model-tab-content" id="tab-math">
+            <div class="model-section">
+                <h2>Key Equations</h2>
+                <div class="model-math"><div class="model-math__label">Deviance Loss</div><p>$$L(y, F) = -[y \log p + (1-y) \log(1-p)], \quad p = \sigma(F) = \frac{1}{1+e^{-F}}$$</p></div>
+                <div class="model-math"><div class="model-math__label">Pseudo-Residuals</div><p>$$r_i = -\frac{\partial L}{\partial F(x_i)} = y_i - p_i$$</p></div>
+                <div class="model-math"><div class="model-math__label">Additive Update</div><p>$$F_t(x) = F_{t-1}(x) + \eta \cdot h_t(x)$$</p></div>
+                <div class="model-math"><div class="model-math__label">Regularization</div><p>$$\Omega(h_t) = \gamma T + \frac{1}{2}\lambda \sum_{j=1}^T w_j^2$$</p><p>where $T$ = number of leaves, $w_j$ = leaf weights, $\gamma$ and $\lambda$ are penalties.</p></div>
+            </div>
+        </div>
+        <div class="model-tab-content" id="tab-code">
+            <div class="model-section">
+                <h2>scikit-learn</h2>
+                <div class="model-code"><div class="model-code__label">Python</div>
+                    <pre><code>from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import accuracy_score
+
+model = GradientBoostingClassifier(
+    n_estimators=100, learning_rate=0.1,
+    max_depth=3, subsample=0.8, random_state=42
+)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+print(f"Accuracy: {accuracy_score(y_test, y_pred):.4f}")</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="model-tab-content" id="tab-references">
+            <div class="model-section">
+                <h2>Key References</h2>
+                <ul><li>Friedman, J. H. (2001). Greedy Function Approximation: A Gradient Boosting Machine. <em>Annals of Statistics</em>.</li><li>Hastie, T., Tibshirani, R. &amp; Friedman, J. <em>ESL</em>, Chapter 10.</li></ul>
+                <h3>Related Models</h3>
+                <div class="model-related"><a href="../bagging-cls/" class="model-related__link">Bagging</a><a href="../stacking-cls/" class="model-related__link">Stacking</a><a href="../voting-cls/" class="model-related__link">Voting</a></div>
+            </div>
+        </div>
+    </div>
+    <script src="js/data.js"></script>
+    <script src="../../js/shared-diagram.js"></script>
+    <script>
+    (function () {
+        var t = localStorage.getItem('mlzoo_theme'); if (t) document.documentElement.setAttribute('data-theme', t);
+        document.querySelectorAll('.model-tab-btn').forEach(function (btn) { btn.addEventListener('click', function () { document.querySelectorAll('.model-tab-btn').forEach(function (b) { b.classList.remove('model-tab-btn--active'); }); document.querySelectorAll('.model-tab-content').forEach(function (c) { c.classList.remove('model-tab-content--active'); }); btn.classList.add('model-tab-btn--active'); document.getElementById('tab-' + btn.getAttribute('data-tab')).classList.add('model-tab-content--active'); }); });
+        document.addEventListener('DOMContentLoaded', function () { if (typeof renderMathInElement !== 'undefined') { renderMathInElement(document.body, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }); } });
+
+        var data = window.MLZoo.modelData;
+        MLZoo.diagram.init('#diagram-container', data.config);
+        MLZoo.diagram.drawPoints(data.points);
+        var currentRound = 5, showRegions = false;
+        function redraw() {
+            MLZoo.diagram.clear();
+            if (showRegions) MLZoo.diagram.drawRegions(data.makeClassifyFn(currentRound), { opacity: 0.12 });
+            MLZoo.diagram.drawPoints(data.points);
+        }
+        redraw();
+        document.getElementById('round-input').addEventListener('input', function () { currentRound = parseInt(this.value); document.getElementById('round-value').textContent = currentRound; redraw(); });
+        document.getElementById('btn-regions').addEventListener('click', function () { showRegions = !showRegions; this.textContent = showRegions ? 'Hide Regions' : 'Show Regions'; redraw(); });
+    })();
+    </script>
+</body>
+</html>

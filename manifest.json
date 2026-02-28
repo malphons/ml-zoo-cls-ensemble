@@ -1,0 +1,70 @@
+{
+    "schema_version": "1.0",
+    "repo_id": "ml-zoo-cls-ensemble",
+    "task": "classification",
+    "subcategory": "ensemble",
+    "label": "Ensemble Classifiers",
+    "color_accent": "#7ee787",
+    "models": [
+        {
+            "id": "bagging-cls",
+            "name": "Bagging Classifier",
+            "short_description": "Bootstrap Aggregating trains multiple base learners on random subsets of data and aggregates predictions by voting.",
+            "task": "classification",
+            "subcategory": "ensemble",
+            "tags": ["ensemble", "bootstrap", "variance-reduction", "parallel"],
+            "year_introduced": 1996,
+            "key_paper": "Breiman (1996)",
+            "complexity": "beginner",
+            "color_accent": "#7ee787",
+            "use_cases": ["variance reduction", "unstable learners", "parallel training"],
+            "sklearn_class": "sklearn.ensemble.BaggingClassifier",
+            "related_models": ["boosting-cls", "voting-cls", "stacking-cls"]
+        },
+        {
+            "id": "boosting-cls",
+            "name": "Gradient Boosting Classifier",
+            "short_description": "Sequentially builds trees that correct errors of previous trees by fitting to negative gradients of the loss.",
+            "task": "classification",
+            "subcategory": "ensemble",
+            "tags": ["ensemble", "boosting", "sequential", "gradient-descent"],
+            "year_introduced": 2001,
+            "key_paper": "Friedman (2001)",
+            "complexity": "intermediate",
+            "color_accent": "#7ee787",
+            "use_cases": ["tabular data", "competition ML", "structured prediction"],
+            "sklearn_class": "sklearn.ensemble.GradientBoostingClassifier",
+            "related_models": ["bagging-cls", "stacking-cls", "voting-cls"]
+        },
+        {
+            "id": "stacking-cls",
+            "name": "Stacking Classifier",
+            "short_description": "Trains a meta-learner on the predictions of multiple diverse base models to combine their strengths.",
+            "task": "classification",
+            "subcategory": "ensemble",
+            "tags": ["ensemble", "meta-learning", "model-combination", "heterogeneous"],
+            "year_introduced": 1992,
+            "key_paper": "Wolpert (1992)",
+            "complexity": "advanced",
+            "color_accent": "#7ee787",
+            "use_cases": ["competition ML", "model blending", "diverse model combination"],
+            "sklearn_class": "sklearn.ensemble.StackingClassifier",
+            "related_models": ["voting-cls", "bagging-cls", "boosting-cls"]
+        },
+        {
+            "id": "voting-cls",
+            "name": "Voting Classifier",
+            "short_description": "Combines predictions from multiple different models using hard (majority) or soft (probability-averaged) voting.",
+            "task": "classification",
+            "subcategory": "ensemble",
+            "tags": ["ensemble", "voting", "model-combination", "simple"],
+            "year_introduced": 1994,
+            "key_paper": "Kittler et al. (1998)",
+            "complexity": "beginner",
+            "color_accent": "#7ee787",
+            "use_cases": ["model combination", "robust prediction", "diverse classifiers"],
+            "sklearn_class": "sklearn.ensemble.VotingClassifier",
+            "related_models": ["stacking-cls", "bagging-cls", "boosting-cls"]
+        }
+    ]
+}

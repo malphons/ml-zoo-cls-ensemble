@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting Classifier &mdash; ML Zoo</title>
+    <meta name="description" content="Interactive deep-dive into the Voting Classifier with hard and soft voting visualization.">
+    <style>
+        :root{--bg-primary:#0d1117;--bg-secondary:#161b22;--bg-card:#1c2128;--bg-card-hover:#272d36;--bg-input:#21262d;--text-primary:#e6edf3;--text-secondary:#8b949e;--text-muted:#6e7681;--text-link:#58a6ff;--border-default:#30363d;--border-muted:#21262d;--radius-sm:6px;--radius-md:10px;--transition:.2s ease}
+        :root[data-theme="light"]{--bg-primary:#ffffff;--bg-secondary:#f6f8fa;--bg-card:#ffffff;--bg-card-hover:#f3f4f6;--bg-input:#f6f8fa;--text-primary:#1f2328;--text-secondary:#656d76;--text-muted:#8b949e;--text-link:#0969da;--border-default:#d0d7de;--border-muted:#d8dee4}
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:var(--text-primary);background:var(--bg-primary);-webkit-font-smoothing:antialiased;line-height:1.6}
+    </style>
+    <link rel="stylesheet" href="../../css/model.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div class="model-page">
+        <nav class="model-nav">
+            <a href="../../../../" class="model-nav__back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back to ML Zoo
+            </a>
+        </nav>
+        <section class="model-hero">
+            <h1 class="model-hero__title">Voting Classifier</h1>
+            <div class="model-hero__meta">
+                <span class="model-hero__badge" style="background:#3fb950;color:#fff">Classification</span>
+                <span class="model-hero__badge" style="background:rgba(126,231,135,.15);color:#7ee787">Ensemble</span>
+                <span class="model-hero__year">Est. 1994</span>
+            </div>
+            <p class="model-hero__desc">Combines predictions from multiple classifiers using majority voting (hard) or averaged probabilities (soft), leveraging the wisdom-of-crowds effect for improved accuracy.</p>
+        </section>
+        <div class="model-diagram">
+            <div class="model-diagram__controls">
+                <button class="model-diagram__btn" id="btn-individual">Show Individual Models</button>
+                <button class="model-diagram__btn" id="btn-regions">Show Regions</button>
+                <button class="model-diagram__btn" id="btn-voting">Hard Voting</button>
+                <button class="model-diagram__btn" onclick="MLZoo.diagram.resetZoom()">Reset View</button>
+            </div>
+            <div id="diagram-container"></div>
+        </div>
+        <div class="model-tabs">
+            <button class="model-tab-btn model-tab-btn--active" data-tab="overview">Overview</button>
+            <button class="model-tab-btn" data-tab="howto">How It Works</button>
+            <button class="model-tab-btn" data-tab="math">Math</button>
+            <button class="model-tab-btn" data-tab="code">Code</button>
+            <button class="model-tab-btn" data-tab="references">References</button>
+        </div>
+        <div class="model-tab-content model-tab-content--active" id="tab-overview">
+            <div class="model-section">
+                <h2>Overview</h2>
+                <p>The Voting Classifier is one of the simplest yet most effective ensemble methods. It aggregates predictions from multiple classifiers and outputs the class that receives the most votes (hard voting) or the class with the highest averaged probability (soft voting).</p>
+                <p>The intuition is the &ldquo;wisdom of crowds&rdquo; effect: if each classifier is better than random and their errors are somewhat independent, the majority vote will tend to be more accurate than any individual classifier. Soft voting can outperform hard voting by leveraging the confidence levels of each classifier.</p>
+                <h3>When to Use</h3>
+                <ul>
+                    <li>You have several trained classifiers with complementary strengths</li>
+                    <li>You want a simple ensemble without meta-learner complexity</li>
+                    <li>Base classifiers produce well-calibrated probabilities (for soft voting)</li>
+                    <li>Quick improvement over individual models</li>
+                </ul>
+                <div class="model-proscons">
+                    <div class="model-pros">
+                        <h4>Pros</h4>
+                        <ul>
+                            <li>Extremely simple to implement</li>
+                            <li>Often improves over best individual model</li>
+                            <li>Soft voting leverages probability calibration</li>
+                            <li>No additional training step (unlike stacking)</li>
+                            <li>Easily parallelizable</li>
+                        </ul>
+                    </div>
+                    <div class="model-cons">
+                        <h4>Cons</h4>
+                        <ul>
+                            <li>Cannot learn which model to trust where (unlike stacking)</li>
+                            <li>All models weighted equally by default</li>
+                            <li>Soft voting requires probability outputs from all models</li>
+                            <li>Diminishing returns with correlated classifiers</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="model-tab-content" id="tab-howto">
+            <div class="model-section">
+                <h2>How It Works</h2>
+                <h3>Hard Voting (Majority Rule)</h3>
+                <ol style="color:var(--text-secondary);padding-left:20px;margin-bottom:16px">
+                    <li style="margin-bottom:8px"><strong>Collect predictions:</strong> Each of the $M$ classifiers produces a class label $\hat{y}_m(x) \in \{0, 1, \ldots, K-1\}$.</li>
+                    <li style="margin-bottom:8px"><strong>Majority vote:</strong> Return the class that appears most frequently among the $M$ predictions.</li>
+                </ol>
+                <h3>Soft Voting (Probability Averaging)</h3>
+                <ol style="color:var(--text-secondary);padding-left:20px;margin-bottom:16px">
+                    <li style="margin-bottom:8px"><strong>Collect probabilities:</strong> Each classifier produces a probability vector $P_m(C_k \mid x)$ for all classes.</li>
+                    <li style="margin-bottom:8px"><strong>Average probabilities:</strong> Compute $\bar{P}(C_k \mid x) = \frac{1}{M}\sum_{m=1}^{M} P_m(C_k \mid x)$.</li>
+                    <li style="margin-bottom:8px"><strong>Predict:</strong> Return $\arg\max_k \bar{P}(C_k \mid x)$.</li>
+                </ol>
+                <p>Toggle the <strong>voting mode</strong> button to compare hard vs. soft voting boundaries. Notice how soft voting produces smoother boundaries because it considers prediction confidence.</p>
+                <div id="flow-container" style="margin-top:12px"></div>
+            </div>
+        </div>
+        <div class="model-tab-content" id="tab-math">
+            <div class="model-section">
+                <h2>Key Equations</h2>
+                <div class="model-math"><div class="model-math__label">Hard Voting</div><p>$$\hat{y}_{\text{hard}}(x) = \text{mode}\bigl\{\hat{y}_1(x),\, \hat{y}_2(x),\, \ldots,\, \hat{y}_M(x)\bigr\}$$</p></div>
+                <div class="model-math"><div class="model-math__label">Soft Voting</div><p>$$\hat{y}_{\text{soft}}(x) = \arg\max_k \frac{1}{M}\sum_{m=1}^{M} P_m(C_k \mid x)$$</p></div>
+                <div class="model-math"><div class="model-math__label">Weighted Voting</div><p>$$\hat{y}_{\text{weighted}}(x) = \arg\max_k \sum_{m=1}^{M} w_m \cdot P_m(C_k \mid x)$$</p><p>where $\sum_{m} w_m = 1$ and weights $w_m$ can be set by cross-validation performance.</p></div>
+                <div class="model-math"><div class="model-math__label">Condorcet's Jury Theorem</div><p>If each of $M$ independent classifiers has accuracy $p > 0.5$, the probability that the majority vote is correct:</p><p>$$P_{\text{correct}} = \sum_{k=\lceil M/2\rceil}^{M}\binom{M}{k}p^k(1-p)^{M-k} \xrightarrow{M \to \infty} 1$$</p></div>
+            </div>
+        </div>
+        <div class="model-tab-content" id="tab-code">
+            <div class="model-section">
+                <h2>scikit-learn</h2>
+                <div class="model-code"><div class="model-code__label">Python</div>
+                    <pre><code>from sklearn.ensemble import VotingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+
+# Define base estimators
+estimators = [
+    ('lr', LogisticRegression()),
+    ('dt', DecisionTreeClassifier(max_depth=5)),
+    ('svm', SVC(probability=True))
+]
+
+# Hard voting
+hard_voter = VotingClassifier(
+    estimators=estimators, voting='hard'
+)
+
+# Soft voting
+soft_voter = VotingClassifier(
+    estimators=estimators, voting='soft'
+)
+
+# Weighted soft voting
+weighted_voter = VotingClassifier(
+    estimators=estimators, voting='soft',
+    weights=[2, 1, 1]  # trust LR more
+)
+
+hard_voter.fit(X_train, y_train)
+soft_voter.fit(X_train, y_train)
+print(f"Hard: {accuracy_score(y_test, hard_voter.predict(X_test)):.4f}")
+print(f"Soft: {accuracy_score(y_test, soft_voter.predict(X_test)):.4f}")</code></pre>
+                </div>
+            </div>
+        </div>
+        <div class="model-tab-content" id="tab-references">
+            <div class="model-section">
+                <h2>Key References</h2>
+                <ul>
+                    <li>Kittler, J. et al. (1998). On Combining Classifiers. <em>IEEE Trans. PAMI</em>, 20(3), 226&ndash;239.</li>
+                    <li>Lam, L. &amp; Suen, C. Y. (1997). Application of Majority Voting to Pattern Recognition. <em>IEEE Trans. SMC</em>, 27(5).</li>
+                    <li>Hastie, T., Tibshirani, R. &amp; Friedman, J. <em>ESL</em>, Chapter 8.</li>
+                </ul>
+                <h3>Related Models</h3>
+                <div class="model-related">
+                    <a href="../bagging-cls/" class="model-related__link">Bagging</a>
+                    <a href="../boosting-cls/" class="model-related__link">Gradient Boosting</a>
+                    <a href="../stacking-cls/" class="model-related__link">Stacking</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/data.js"></script>
+    <script src="../../js/shared-diagram.js"></script>
+    <script>
+    (function () {
+        var t = localStorage.getItem('mlzoo_theme'); if (t) document.documentElement.setAttribute('data-theme', t);
+        document.querySelectorAll('.model-tab-btn').forEach(function (btn) { btn.addEventListener('click', function () { document.querySelectorAll('.model-tab-btn').forEach(function (b) { b.classList.remove('model-tab-btn--active'); }); document.querySelectorAll('.model-tab-content').forEach(function (c) { c.classList.remove('model-tab-content--active'); }); btn.classList.add('model-tab-btn--active'); document.getElementById('tab-' + btn.getAttribute('data-tab')).classList.add('model-tab-content--active'); }); });
+        document.addEventListener('DOMContentLoaded', function () { if (typeof renderMathInElement !== 'undefined') { renderMathInElement(document.body, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }] }); } });
+
+        var data = window.MLZoo.modelData;
+        MLZoo.diagram.init('#diagram-container', data.config);
+        MLZoo.diagram.drawPoints(data.points);
+
+        var showIndividual = false, showRegions = false, useHardVoting = true;
+        function currentClassifyFn() { return useHardVoting ? data.hardVote : data.softVote; }
+        function redraw() {
+            MLZoo.diagram.clear();
+            if (showRegions) MLZoo.diagram.drawRegions(currentClassifyFn(), { opacity: 0.12 });
+            if (showIndividual) {
+                var fns = data.models.map(function (m) { return m.classify; });
+                MLZoo.diagram.drawMultipleRegions(fns, { opacity: 0.06 });
+            }
+            MLZoo.diagram.drawPoints(data.points);
+        }
+        redraw();
+
+        document.getElementById('btn-individual').addEventListener('click', function () { showIndividual = !showIndividual; this.textContent = showIndividual ? 'Hide Individual Models' : 'Show Individual Models'; redraw(); });
+        document.getElementById('btn-regions').addEventListener('click', function () { showRegions = !showRegions; this.textContent = showRegions ? 'Hide Regions' : 'Show Regions'; redraw(); });
+        document.getElementById('btn-voting').addEventListener('click', function () { useHardVoting = !useHardVoting; this.textContent = useHardVoting ? 'Hard Voting' : 'Soft Voting'; redraw(); });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var fc = document.getElementById('flow-container');
+            if (fc) MLZoo.diagram.drawEnsembleFlow('#flow-container', { numModels: 3, modelLabels: ['Model A', 'Model B', 'Model C'], combinationLabel: 'Majority Vote', accentColor: '#7ee787' });
+        });
+    })();
+    </script>
+</body>
+</html>
